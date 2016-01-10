@@ -14,17 +14,22 @@ func (logger *LogRecord) Write(data []byte) (int, error) {
 	return logger.ResponseWriter.Write(data)
 }
 
-func WrapHandler(handler http.Handler) http.HandleFunc {
-	return func(writer http.ResponseWriter, request *htpp.Request) {
-        record := &LogRecord{
-            ResponseWriter: writer
-        }
+func (logger *LogRecord) WriteHeader(status int) {
+	logger.Status = status
+	logger.ResponseWriter.WriteHeader(status)
+}
 
-        handler.ServeHTTP(record, handler)
-        log.Println("Bad Request ", record.Status)
+func WrapHandler(handler http.Handler) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		record := &LogRecord{
+			ResponseWriter: writer,
+		}
 
-        if record.Status == http.StatusBadRequest {
-            log.Println("Bad Request ", handler)
-        }
+		handler.ServeHTTP(record, request)
+		log.Println("Bad Request ", record.Status)
+
+		if record.Status == http.StatusBadRequest {
+			log.Println("Bad Request ", request)
+		}
 	}
 }
